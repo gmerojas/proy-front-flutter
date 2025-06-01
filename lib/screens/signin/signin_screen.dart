@@ -25,6 +25,10 @@ class _SigninScreenState extends State<SigninScreen> {
     
   }
 
+  void _loginWithBiometrics() {
+    context.read<AuthBloc>().add(BiometricLoginRequested());
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
@@ -48,10 +52,11 @@ class _SigninScreenState extends State<SigninScreen> {
                         onPressed: () => login(context),
                         child: Text('Login'),
                       ),
-                      // ElevatedButton(
-                      //   onPressed: _loginWithBiometrics, 
-                      //   child: Text('Usar Huella Dactilar')
-                      // ),
+                      Icon(Icons.import_contacts),
+                      ElevatedButton(
+                        onPressed: _loginWithBiometrics, 
+                        child: Text('Usar Huella Dactilar')
+                      ),
                       // ElevatedButton(
                       //   onPressed: _get2FASetup, 
                       //   child: Text('Generar QR Google Authenticator')

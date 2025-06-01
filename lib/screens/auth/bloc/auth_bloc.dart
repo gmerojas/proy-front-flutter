@@ -29,5 +29,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       await authRepository.logout();
       emit(Unauthenticated());
     });
+
+    on<BiometricLoginRequested>((event, emit) async {
+      emit(AuthLoading());
+      final apiResponse = await authRepository.checkOldAuth();
+      apiResponse.fold(
+        (failure) => emit(AuthError(failure.message)), 
+        (user) => emit(Authenticated(user)),
+      );
+    });
   }
 }

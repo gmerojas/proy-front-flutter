@@ -1,34 +1,30 @@
-import 'dart:convert';
-
 import 'package:dartz/dartz.dart';
-import 'package:flutter_bloc_one/config/storage.dart';
 import 'package:flutter_bloc_one/core/errors/failure.dart';
-import 'package:flutter_bloc_one/core/services/service_locator.dart';
+import 'package:flutter_bloc_one/data/data_source/auth_local_data_source.dart';
 import 'package:flutter_bloc_one/data/models/user_model.dart';
 import 'package:flutter_bloc_one/data/services/auth_service.dart';
+import 'package:local_auth/local_auth.dart';
 
 class AuthRepository {
   final AuthService authService;
-  AuthRepository(this.authService);
+  final LocalAuthentication localAuth;
+  final AuthLocalDataSource localDataSource;
+  AuthRepository(this.authService, this.localAuth, this.localDataSource);
 
   Future<Either<Failure, UserModel>> checkLogged() async {
     try{
-      final isLogged = await sl<Storage>().getValue('isLogged');
+      final isLogged = await localDataSource.isLogged();
       await Future.delayed(Duration(seconds: 2));
 
-      if (isLogged != null && isLogged == 'true'){
-        var token = await sl<Storage>().getToken();
-        final user = await sl<Storage>().getValue('user');
+      if (!isLogged) return Left(AuthFailure.unauthenticated());
 
-        if (token != null && user != null) {
-          final userLogged = UserModel.fromJson(jsonDecode(user));
-          return Right(userLogged);
-        } else {
-          return Left(AuthFailure('No autenticado'));
-        }
-      } else {
-        return Left(AuthFailure('No autenticado'));
-      }
+      final userLogged = await localDataSource.getLoggedUser();
+      if(userLogged == null) return Left(AuthFailure.unauthenticated());
+      
+      var token = await localDataSource.getToken();
+      if (token == null) return Left(AuthFailure.unauthenticated());
+
+      return Right(userLogged);
     } catch(e){
       return Left(AuthFailure('Error al verificar autenticado'));
     }
@@ -38,9 +34,7 @@ class AuthRepository {
     try{
       final apiResponse = await authService.login(params.username, params.password);
 
-      await sl<Storage>().setValue('isLogged','true');
-      await sl<Storage>().setValue('access_token',apiResponse.token);
-      await sl<Storage>().setValue('user',apiResponse.user.toJson());
+      await localDataSource.persistLoginData(token: apiResponse.token, user: apiResponse.user);
 
       return Right(apiResponse.user);
     } on Failure catch(failure){
@@ -49,8 +43,39 @@ class AuthRepository {
   }
 
   Future<Either<Failure, void>> logout() async {
-    Storage().deleteValue('isLogged');
-    return Right(null);
+    try {
+      await localDataSource.clearSession();
+      return Right(null);
+    } catch (_) {
+      return Left(AuthFailure('Error al cerrar sesión'));
+    }
+  }
+
+    Future<Either<Failure, UserModel>> checkOldAuth() async {
+    try{
+      final canCheck = await localAuth.canCheckBiometrics;
+      final supported = await localAuth.isDeviceSupported();
+      if (!canCheck || !supported) return Left(AuthFailure('Biometría no soportada'));
+
+      final authenticated = await localAuth.authenticate(
+        localizedReason: 'Autenticarse con huella dactilar',
+        options: const AuthenticationOptions(
+          biometricOnly: true,
+        ),
+      ).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () => false, // devuelve false si se tarda más de 10 seg
+      );
+      if (!authenticated) return Left(AuthFailure('Cancelado'));
+
+      final token = await localDataSource.getToken();
+      final userLogged = await localDataSource.getLoggedUser();
+      if (token == null || userLogged == null) return Left(AuthFailure('No autenticado'));
+
+      return Right(userLogged);
+    } on Failure catch(failure){
+      return Left(failure);
+    }
   }
 }
 

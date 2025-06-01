@@ -5,7 +5,7 @@ abstract class Failure {
 }
 
 class ServerFailure extends Failure {
-  ServerFailure(String message) : super(message);
+  ServerFailure(super.message);
 }
 
 class NetworkFailure extends Failure {
@@ -13,11 +13,15 @@ class NetworkFailure extends Failure {
 }
 
 class AuthFailure extends Failure {
-  AuthFailure(String message) : super(message);
+  AuthFailure(super.message);
+
+  factory AuthFailure.unauthenticated() => AuthFailure('No autenticado');
+
+  factory AuthFailure.unexpected() => AuthFailure('Error inesperado');
 }
 
 class ResponseFailure extends Failure {
-  ResponseFailure(String message) : super(message);
+  ResponseFailure(super.message);
 }
 
 class UnexpectedFailure extends Failure {
