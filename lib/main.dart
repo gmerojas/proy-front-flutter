@@ -1,13 +1,17 @@
-import 'package:bloc/bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_bloc_one/core/services/service_locator.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:logger/logger.dart';
 import 'core/services/service_locator.dart' as service_locator;
 
 import 'config/config.dart';
 import 'screens/auth/bloc/auth.dart';
 
-void main() {
+final logger = Logger();
+
+void main() async {
+  await dotenv.load(fileName: ".env.dev"); // cambiar según el build
   Bloc.observer = SimpleBlocDelegate();
   service_locator.init();
   runApp(const MyApp());
@@ -38,14 +42,12 @@ class SimpleBlocDelegate extends BlocObserver {
   @override
   void onTransition(Bloc bloc, Transition transition) {
     super.onTransition(bloc, transition);
-    // ignore: avoid_print
-    print('DEBUG BLOC TRANSITION: $transition');
+    logger.i('DEBUG BLOC TRANSITION: $transition');
   }
 
   @override
   void onError(BlocBase bloc, Object error, StackTrace stackTrace) {
     super.onError(bloc, error, stackTrace);
-    // ignore: avoid_print
-    print('DEBUG BLOC ERROR: $error : $stackTrace');
+    logger.e('DEBUG BLOC ERROR: $error : $stackTrace');
   }
 }

@@ -4,17 +4,23 @@ import 'package:flutter_bloc_one/config/storage.dart';
 import 'package:flutter_bloc_one/core/errors/failure.dart';
 import 'package:flutter_bloc_one/core/services/service_locator.dart';
 import 'package:flutter_bloc_one/data/models/error_model.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:logger/logger.dart';
 
 class ApiService {
+  final logger = Logger();
   final Dio dio;
   ApiService(this.dio) {
-    dio.options.baseUrl = 'http://192.168.0.15:8001';
+    final apiBase = dotenv.env['API_URL'] ?? 'https://www.example.com';
+    dio.options.baseUrl = apiBase;
     dio.options.connectTimeout = Duration(seconds: 10);
     dio.options.receiveTimeout = Duration(seconds: 10);
     dio.options.headers = {'Content-Type':'application/json'};
 
     dio.interceptors.add(InterceptorsWrapper(
           onRequest: (options, handler) async {
+            final requestPath = '${options.baseUrl}${options.path}';
+            logger.i('${options.method} request ==> $requestPath');
             final token = await sl<Storage>().getToken();
             if(token != null){
               options.headers['Authorization'] = 'Bearer $token';
