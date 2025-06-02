@@ -57,15 +57,7 @@ class AuthRepository {
       final supported = await localAuth.isDeviceSupported();
       if (!canCheck || !supported) return Left(AuthFailure('Biometría no soportada'));
 
-      final authenticated = await localAuth.authenticate(
-        localizedReason: 'Autenticarse con huella dactilar',
-        options: const AuthenticationOptions(
-          biometricOnly: true,
-        ),
-      ).timeout(
-        const Duration(seconds: 10),
-        onTimeout: () => false, // devuelve false si se tarda más de 10 seg
-      );
+      final authenticated = await localDataSource.authenticate();
       if (!authenticated) return Left(AuthFailure('Cancelado'));
 
       final token = await localDataSource.getToken();

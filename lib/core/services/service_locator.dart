@@ -22,5 +22,5 @@ void init(){
   sl.registerLazySingleton(() => AuthBloc(sl()));
   sl.registerLazySingleton(() => AuthRepository(sl(),sl(),sl()));
   sl.registerLazySingleton(() => AuthService(sl()));
-  sl.registerLazySingleton<AuthLocalDataSource>(() => AuthLocalDataSourceImpl(sl()));
+  sl.registerLazySingleton<AuthLocalDataSource>(() => AuthLocalDataSourceImpl(sl(),sl()));
 }
